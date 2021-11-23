@@ -9,7 +9,7 @@ import (
 
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
-		http.NotFound(w, r)
+		app.NotfoundError(w)
 		return
 	}
 	files := []string{"./ui/html/home.page.tmpl",
@@ -17,29 +17,26 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 		"./ui/html/footer.partial.tmpl"}
 	temp, err := template.ParseFiles(files...)
 	if err != nil {
-
-		http.Error(w, "something wrong", 500)
-		app.errorLog.Println(err)
+		app.ServerError(w, err)
 		return
 	}
 	err = temp.Execute(w, nil)
 
 	if err != nil {
-		http.Error(w, "something wrong", 500)
-		app.errorLog.Println(err.Error())
+		app.ServerError(w, err)
 	}
 }
 
 func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.URL.Query().Get("id"))
 	if err != nil || id < 1 {
-		http.NotFound(w, r)
+		app.NotfoundError(w)
 		return
 	}
 
 	_, err = fmt.Fprintf(w, "Сниппет с id %d", id)
 	if err != nil {
-		fmt.Println(err)
+		app.ServerError(w, err)
 	}
 
 }
@@ -47,7 +44,7 @@ func (app *application) createSnippet(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		w.Header().Set("allow", http.MethodPost)
 
-		http.Error(w, "Запрещено", 405)
+		app.ClientError(w, http.StatusMethodNotAllowed)
 		return
 	}
 	w.Write([]byte("Создаем заметку!\n"))

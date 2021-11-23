@@ -51,18 +51,16 @@ func main() {
 		infoLog:  infoLog,
 		errorLog: errorLog,
 	}
-	router.HandleFunc("/", app.home)
-	router.HandleFunc("/snippet", app.showSnippet)
-	router.HandleFunc("/snippet/create", app.createSnippet)
+	srv := &http.Server{
+		Addr:     *addr,
+		ErrorLog: errorLog,
+		Handler:  app.routes(),
+	}
+
 	fileServer := http.FileServer(neuteredFileSystem{http.Dir("./ui/static")})
 	router.Handle("/static/", http.StripPrefix("/static", fileServer))
 	infoLog.Printf("Запуск сервера на 127.0.0.1:%s", *addr)
 
-	srv := &http.Server{
-		ErrorLog: errorLog,
-		Handler:  router,
-		Addr:     *addr,
-	}
 	err = srv.ListenAndServe()
 
 	if err != nil {
