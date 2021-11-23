@@ -3,12 +3,11 @@ package main
 import (
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
 	"strconv"
 )
 
-func home(w http.ResponseWriter, r *http.Request) {
+func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
 		return
@@ -18,19 +17,20 @@ func home(w http.ResponseWriter, r *http.Request) {
 		"./ui/html/footer.partial.tmpl"}
 	temp, err := template.ParseFiles(files...)
 	if err != nil {
+
 		http.Error(w, "something wrong", 500)
-		log.Println(err)
+		app.errorLog.Println(err)
 		return
 	}
 	err = temp.Execute(w, nil)
 
-	//_, err := w.Write([]byte("Привет из сниппетбокса"))
 	if err != nil {
 		http.Error(w, "something wrong", 500)
+		app.errorLog.Println(err.Error())
 	}
 }
 
-func showSnippet(w http.ResponseWriter, r *http.Request) {
+func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.URL.Query().Get("id"))
 	if err != nil || id < 1 {
 		http.NotFound(w, r)
@@ -43,7 +43,7 @@ func showSnippet(w http.ResponseWriter, r *http.Request) {
 	}
 
 }
-func createSnippet(w http.ResponseWriter, r *http.Request) {
+func (app *application) createSnippet(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		w.Header().Set("allow", http.MethodPost)
 

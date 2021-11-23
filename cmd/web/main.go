@@ -2,9 +2,9 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 )
 
@@ -33,21 +33,40 @@ func (nfs neuteredFileSystem) Open(path string) (http.File, error) {
 
 	return file, nil
 }
+
+type application struct {
+	infoLog  *log.Logger
+	errorLog *log.Logger
+}
+
 func main() {
 	addr := flag.String("addr", ":8080", "номер порта на котором запускается веб-сервер")
 	flag.Parse()
+	logfile, err := os.OpenFile("logfile", os.O_CREATE|os.O_RDWR, 0666)
+	defer logfile.Close()
+	infoLog := log.New(logfile, "INFO\t", log.LstdFlags|log.Lshortfile)
+	errorLog := log.New(logfile, "ERROR\t", log.LstdFlags|log.Lshortfile)
 	router := http.NewServeMux()
-	router.HandleFunc("/", home)
-	router.HandleFunc("/snippet", showSnippet)
-	router.HandleFunc("/snippet/create", createSnippet)
+	app := &application{
+		infoLog:  infoLog,
+		errorLog: errorLog,
+	}
+	router.HandleFunc("/", app.home)
+	router.HandleFunc("/snippet", app.showSnippet)
+	router.HandleFunc("/snippet/create", app.createSnippet)
 	fileServer := http.FileServer(neuteredFileSystem{http.Dir("./ui/static")})
 	router.Handle("/static/", http.StripPrefix("/static", fileServer))
-	log.Printf("Запуск сервера на 127.0.0.1:%s", *addr)
+	infoLog.Printf("Запуск сервера на 127.0.0.1:%s", *addr)
 
-	err := http.ListenAndServe(*addr, router)
+	srv := &http.Server{
+		ErrorLog: errorLog,
+		Handler:  router,
+		Addr:     *addr,
+	}
+	err = srv.ListenAndServe()
 
 	if err != nil {
-		fmt.Println(err)
+		errorLog.Fatal(err)
 	}
 
 }
