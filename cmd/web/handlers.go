@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"github.com/clovuss/snippetbox/pkg/models"
 	"html/template"
 	"net/http"
 	"strconv"
@@ -33,8 +35,18 @@ func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
 		app.NotfoundError(w)
 		return
 	}
+	res, err := app.snippets.Get(id)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			app.NotfoundError(w)
+		} else {
+			fmt.Println(err)
+			app.ServerError(w, err)
+		}
+		return
+	}
 
-	_, err = fmt.Fprintf(w, "Сниппет с id %d", id)
+	_, err = fmt.Fprint(w, "Сниппет с id ", res)
 	if err != nil {
 		app.ServerError(w, err)
 	}
@@ -46,6 +58,13 @@ func (app *application) createSnippet(w http.ResponseWriter, r *http.Request) {
 
 		app.ClientError(w, http.StatusMethodNotAllowed)
 		return
+	}
+
+	title := "Пост про улитку"
+	text := "Улитка выползла из раковины,\nвытянула рожки,\nи опять подобрала их."
+	err := app.snippets.Insert(title, text)
+	if err != nil {
+		println(err)
 	}
 	w.Write([]byte("Создаем заметку!\n"))
 }
